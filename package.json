@@ -1,4 +1,6 @@
-{
+"scripts": {
+  "start": "node src/index.js"
+}{
   "name": "tvpass-proxy",
   "version": "1.0.0",
   "main": "index.js",
