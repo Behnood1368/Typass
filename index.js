@@ -9,9 +9,8 @@ app.get("/", async (req, res) => {
   }
 
   try {
-    const response = await fetch(targetUrl, {
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.6998.166 Safari/537.36" }
-    });
+    const response = await fetch(targetUrl)
+      
 
     res.set("Content-Type", response.headers.get("content-type") || "application/octet-stream");
     res.set("Access-Control-Allow-Origin", "*");
