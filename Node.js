@@ -1,46 +1,61 @@
-// index.js
-const express = require("express");
-const fetch = require("node-fetch");
+const { UDPServer } = require('dns2');
+const tls = require('tls');
 
-const app = express();
+const DOT_SERVER = {
+  host: 'dns.google',
+  port: 853,
+  servername: 'dns.google'
+};
 
-app.get("/", async (req, res) => {
-  const inputUrl = req.query.url;
+const buildQueryBuffer = (question) => {
+  const { DNSPacket } = require('dns2');
+  const packet = DNSPacket.createQuery(question);
+  return DNSPacket.write(packet);
+};
 
-  if (!inputUrl || !inputUrl.startsWith("http")) {
-    return res.status(400).send("پارامتر ?url الزامی است");
-  }
-
-  try {
-    // مرحله 1: دریافت ریدایرکت از tvpass
-    const redirectRes = await fetch(inputUrl, {
-      redirect: "manual",
-      headers: { "User-Agent": "Mozilla/5.0" }
+const sendDoTQuery = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const socket = tls.connect(DOT_SERVER, () => {
+      const length = Buffer.alloc(2);
+      length.writeUInt16BE(buffer.length, 0);
+      socket.write(Buffer.concat([length, buffer]));
     });
 
-    const finalUrl = redirectRes.headers.get("location");
-    if (!finalUrl || !finalUrl.includes("thetvapp.to")) {
-      return res.status(500).send("لینک نهایی پیدا نشد");
-    }
+    socket.once('error', reject);
 
-    // مرحله 2: دریافت فایل M3U8 یا استریم
-    const streamRes = await fetch(finalUrl, {
-      headers: {
-        "Origin": "https://tvpass.org",
-        "Referer": "https://tvpass.org/",
-        "User-Agent": "Mozilla/5.0"
+    let chunks = [];
+    let expectedLength = null;
+    socket.on('data', (data) => {
+      chunks.push(data);
+      const all = Buffer.concat(chunks);
+      if (expectedLength === null && all.length >= 2) {
+        expectedLength = all.readUInt16BE(0);
+      }
+
+      if (expectedLength !== null && all.length >= expectedLength + 2) {
+        socket.end();
+        resolve(all.slice(2, 2 + expectedLength));
       }
     });
+  });
+};
 
-    res.set("Content-Type", streamRes.headers.get("Content-Type") || "application/vnd.apple.mpegurl");
-    res.set("Access-Control-Allow-Origin", "*");
+const server = UDPServer({
+  udp: true,
+  handle: async (request, send, rinfo) => {
+    const question = request.questions[0];
+    console.log(`Resolving ${question.name} (${question.type})`);
 
-    streamRes.body.pipe(res);
-  } catch (err) {
-    res.status(500).send("خطا: " + err.message);
+    try {
+      const queryBuffer = buildQueryBuffer(question);
+      const responseBuffer = await sendDoTQuery(queryBuffer);
+
+      send(responseBuffer);
+    } catch (err) {
+      console.error("DNS resolution failed:", err);
+    }
   }
 });
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Proxy server running...");
-});
+server.listen(53); // می‌تونی پورت رو به 53 تغییر بدی اگه دسترسی داشتی
+console.log("Private DNS-over-TLS server listening on port 5353");
