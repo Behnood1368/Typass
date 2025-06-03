@@ -15,9 +15,9 @@ const resolveDot = async (hostname, type = 'A') => {
 
   return new Promise((resolve, reject) => {
     const socket = tls.connect({
-      host: 'dns.google',
+      host: 'dns.google.com',
       port: 853,
-      servername: 'dns.google'
+      servername: 'dns.google.com'
     }, () => {
       const len = Buffer.alloc(2);
       len.writeUInt16BE(packet.length);
