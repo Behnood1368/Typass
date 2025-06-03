@@ -4,7 +4,7 @@
   "description": "A private DNS-over-TLS resolver using Google's DoT",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "index.js"
   },
   "dependencies": {
     "dns2": "^2.0.0"
