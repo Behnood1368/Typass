@@ -1,12 +1,15 @@
 {
-  "name": "simple-proxy",
+  "name": "private-dot-dns-server",
   "version": "1.0.0",
+  "description": "A private DNS-over-TLS resolver using Google's DoT",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "node-fetch": "^2.6.1"
+    "dns2": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=16"
   }
 }
